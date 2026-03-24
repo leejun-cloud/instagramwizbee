@@ -1,0 +1,32 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node.js (Vite/React 관련)
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project Specific
+settings.json
+*.png
+*.jpg
+*.jpeg
+!dashboard/static/*.png
+!dashboard/static/*.jpg
+!dashboard/static/*.jpeg
+
+# Internal
+.gemini/
+.agent/
+.system_generated/
