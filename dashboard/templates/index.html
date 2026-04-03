@@ -3,45 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wizbee Content Dashboard</title>
+    <title>Wizbee Content Manager</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div class="dashboard-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="logo">
-                <span class="logo-icon">🐝</span> Wizbee
-            </div>
-            <nav class="menu">
-                <a href="#" class="menu-item">Dashboard</a>
-                <a href="#" class="menu-item active">Content</a>
-                <a href="#" class="menu-item">Scheduler</a>
-                <a href="#" class="menu-item">Analytics</a>
-            </nav>
-            <div class="settings-area">
+    <div class="app-wrapper">
+        <header class="top-nav">
+            <div class="logo">🐝 Wizbee <span>Manager</span></div>
+            <div class="nav-controls">
                 <div class="auto-publish-toggle">
+                    <span class="toggle-label">Auto-Publish Mode</span>
                     <label class="switch">
                         <input type="checkbox" id="autoPublishToggle">
                         <span class="slider round"></span>
                     </label>
-                    <span class="toggle-label">Auto-Publish All</span>
+                </div>
+                <div class="batch-controls">
+                    <button class="btn btn-batch" onclick="generateBatch()">🚀 Generate 30 Days</button>
+                    <button class="btn btn-sync" onclick="syncToCloud()">☁️ Sync to Cloud</button>
+                </div>
+                <button class="btn btn-refresh" onclick="loadPosts()">↻ Refresh</button>
+            </div>
+        </header>
+
+        <main class="content-view">
+            <div class="view-header">
+                <h2>Content List</h2>
+                <div class="filter-tabs">
+                    <button class="tab-btn active" onclick="filterBy('all')">All</button>
+                    <button class="tab-btn" onclick="filterBy('pending')">Pending</button>
+                    <button class="tab-btn" onclick="filterBy('published')">Published</button>
                 </div>
             </div>
-        </aside>
-
-        <!-- Main Content -->
-        <main class="main-content">
-            <header class="header">
-                <div class="header-left">
-                    <h1>Content Dashboard</h1>
-                    <p class="subtitle">Instagram Card News Previews</p>
-                </div>
-            </header>
 
             <div class="content-grid" id="postGrid">
-                <!-- Cards will be dynamically injected here -->
+                <!-- Posts will be injected here -->
             </div>
         </main>
     </div>
@@ -51,12 +48,12 @@
         <div class="modal-content">
             <h2>Edit Post <span id="modalDayNumber"></span></h2>
             <div class="form-group">
-                <label>Hook</label>
+                <label>Hook (Short Quote)</label>
                 <textarea id="editHook" rows="2"></textarea>
             </div>
             <div class="form-group">
-                <label>Caption</label>
-                <textarea id="editCaption" rows="4"></textarea>
+                <label>Full Caption</label>
+                <textarea id="editCaption" rows="6"></textarea>
             </div>
             <div class="form-group">
                 <label>Hashtags</label>

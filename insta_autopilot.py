@@ -3,159 +3,141 @@ import time
 import json
 import os
 import sys
-
-import os
+import datetime
 from dotenv import load_dotenv
+import firebase_admin
+from firebase_admin import credentials, db
 
-load_dotenv() # Load local .env if exists
+load_dotenv()
 
 # Configuration
-ACCOUNT_ID = os.getenv("INSTA_ACCOUNT_ID", "17841427998042847")
-ACCESS_TOKEN = os.getenv("INSTA_ACCESS_TOKEN", "REDACTED_INSTA_TOKEN")
-DATA_FILE = "book_data.json"
+ACCOUNT_ID = os.getenv("INSTA_ACCOUNT_ID")
+ACCESS_TOKEN = os.getenv("INSTA_ACCESS_TOKEN")
 VERSION = "v23.0"
+DATABASE_URL = "https://insta-wizbee-cloud-2026-default-rtdb.firebaseio.com"
+
+# Firebase Setup (Realtime Database)
+def init_fb():
+    if not firebase_admin._apps:
+        cred_json = os.getenv("FIREBASE_SERVICE_ACCOUNT")
+        if cred_json:
+            # Check if it's a path or literal JSON
+            if os.path.exists(cred_json):
+                cred = credentials.Certificate(cred_json)
+            else:
+                import json
+                cred_dict = json.loads(cred_json)
+                cred = credentials.Certificate(cred_dict)
+            firebase_admin.initialize_app(cred, {'databaseURL': DATABASE_URL})
+        else:
+            # Fallback to default or just DB URL (public access if configured)
+            firebase_admin.initialize_app(options={'databaseURL': DATABASE_URL})
+    return db.reference('posts')
 
 def get_public_url(file_path):
-    """Hosts local file to a public URL using Catbox."""
     try:
+        # Check if file exists
+        if not os.path.exists(file_path):
+            print(f"⚠️ File not found for hosting: {file_path}")
+            return None
+            
         with open(file_path, 'rb') as f:
             response = requests.post('https://catbox.moe/user/api.php', 
                                    data={'reqtype': 'fileupload'}, 
-                                   files={'fileToUpload': f})
+                                   files={'fileToUpload': f},
+                                   timeout=30)
         if response.status_code == 200:
             return response.text.strip()
+        else:
+            print(f"❌ Hosting failed (HTTP {response.status_code}): {response.text}")
     except Exception as e:
-        print(f"Error hosting file: {e}")
+        print(f"❌ Error hosting file: {e}")
     return None
 
 def publish_to_insta(image_url, caption):
-    """Handles the 2-step Instagram API process."""
+    if not ACCOUNT_ID or not ACCESS_TOKEN:
+        return "Error: Missing INSTA_ACCOUNT_ID or INSTA_ACCESS_TOKEN"
+        
     base_url = f"https://graph.instagram.com/{VERSION}/{ACCOUNT_ID}"
-    
-    # 1. Container
-    res = requests.post(f"{base_url}/media", data={
-        "image_url": image_url,
-        "caption": caption,
-        "access_token": ACCESS_TOKEN
-    }).json()
-    creation_id = res.get("id")
-    if not creation_id:
-        return f"Error: {res}"
-    
-    # Processing wait
-    print(f"⏳ 인스타그램 서버에서 미디어를 처리 중입니다... (Creation ID: {creation_id})")
-    time.sleep(60) 
-    
-    # 2. Publish
-    publish_res = requests.post(f"{base_url}/media_publish", data={
-        "creation_id": creation_id,
-        "access_token": ACCESS_TOKEN
-    }).json()
-    return publish_res.get("id")
-
-def run_day(day_num, image_path=None, test_mode=False):
-    with open(DATA_FILE, 'r', encoding='utf-8') as f:
-        data = json.load(f)
-    
-    day_info = next((d for d in data if d["day"] == day_num), None)
-    if not day_info:
-        print(f"Day {day_num} 정보를 찾을 수 없습니다.")
-        return
-
-    # 승인 여부 확인
-    is_approved = day_info.get("approved", False)
-    if not is_approved and not test_mode:
-        print(f"❌ Day {day_num} 포스트는 아직 승인되지 않았습니다. 업로드를 취소합니다.")
-        return
-
-    # 캡션 구성: Hook -> 발췌문 -> 책 제목 -> 본문 캡션 -> 해시태그
-    full_caption = (
-        f"{day_info['hook']}\n\n"
-        f"📖 \"{day_info['excerpt']}\"\n"
-        f"─ {day_info['book_title']}\n\n"
-        f"{day_info['caption']}\n\n"
-        f"{day_info['hashtags']}\n\n"
-        f"#위즈비 #Wizbee #북스타그램 #독서명언"
-    )
-    
-    if test_mode:
-        print("--- [TEST MODE] ---")
-        print(f"Day {day_num} 예정 시간: {day_info.get('scheduled_time', 'N/A')}")
-        print(f"생성할 이미지 프롬프트: {day_info['image_prompt']}")
-        print(f"인스타그램 캡션 미리보기:\n{full_caption}")
-        print("-------------------")
-        return
-
-    if not image_path:
-        print("에러: 업로드할 이미지 경로가 필요합니다.")
-        return
-
-    public_url = get_public_url(image_path)
-    if not public_url:
-        print("에러: 이미지를 호스팅하는 데 실패했습니다.")
-        return
-
-    print(f"Day {day_num}: 인스타그램 업로드 시작...")
-    res = publish_to_insta(public_url, full_caption)
-    print(f"업로드 결과 ID: {res}")
+    try:
+        res = requests.post(f"{base_url}/media", data={
+            "image_url": image_url,
+            "caption": caption,
+            "access_token": ACCESS_TOKEN
+        }, timeout=30).json()
+        
+        creation_id = res.get("id")
+        if not creation_id: 
+            return f"Error: Request failed - {res}"
+            
+        print(f"⏳ Processing on Instagram... (ID: {creation_id})")
+        time.sleep(60) 
+        
+        publish_res = requests.post(f"{base_url}/media_publish", data={
+            "creation_id": creation_id,
+            "access_token": ACCESS_TOKEN
+        }, timeout=30).json()
+        
+        return publish_res.get("id")
+    except Exception as e:
+        return f"Error: {e}"
 
 def run_auto(test_mode=False):
-    """Automatically finds the next approved post to publish."""
-    with open(DATA_FILE, 'r', encoding='utf-8') as f:
-        data = json.load(f)
+    posts_ref = init_fb()
+    today = datetime.datetime.now().strftime("%Y-%m-%d")
+    print(f"🔍 [RTDB-CLOUD] Checking for today ({today})...")
     
-    # 아직 발행되지 않았고 승인된 포스트 찾기
-    # 'published' 필드가 없거나 False인 것 중 가장 작은 day
-    pending_posts = [p for p in data if p.get("approved", False) and not p.get("published", False)]
-    
-    if not pending_posts:
-        print("💡 발행 대기 중인 승인된 포스트가 없습니다.")
+    # Get all posts from RTDB
+    all_posts = posts_ref.get()
+    if not all_posts:
+        print("❌ No data in Realtime Database. Please use the [Seed] button first.")
         return
 
-    # 첫 번째 대기 포스트 선택
-    post = pending_posts[0]
-    day_num = post["day"]
+    # Find today's target (Flattened because RTDB might be a dict or list)
+    posts_list = []
+    if isinstance(all_posts, dict):
+        posts_list = list(all_posts.values())
+    elif isinstance(all_posts, list):
+        posts_list = [p for p in all_posts if p is not None]
+
+    target_post = None
+    # 1. Match by date
+    target_post = next((p for p in posts_list if p.get("scheduled_date") == today 
+                        and p.get("approved", False) 
+                        and not p.get("published", False)), None)
     
-    print(f"📌 [Auto] Day {day_num} 포스트 발행을 시도합니다.")
-    
-    # 이미지 경로 확인 (로컬에 해당 day 전용 이미지가 있는지 확인하는 로직 추가 가능)
-    # 현재는 수동 업로드 방식이므로, 이미지 경로가 지정되지 않으면 중단
-    # (나중에 AI 이미지 생성 연동 시 여기를 확장)
-    image_path = f"images/day_{day_num}.png"
-    if not os.path.exists(image_path):
-        # 만약 images 폴더에 없다면 test_image.png라도 있는지 확인 (임시)
-        if os.path.exists("test_image.png"):
-            image_path = "test_image.png"
-            print(f"⚠️ Day {day_num} 전용 이미지가 없어 test_image.png를 사용합니다.")
-        else:
-            print(f"❌ 에러: Day {day_num}에 해당하는 이미지({image_path})가 없습니다.")
+    # 2. Fallback to oldest approved
+    if not target_post:
+        pending = [p for p in posts_list if p.get("approved", False) and not p.get("published", False)]
+        if pending: target_post = sorted(pending, key=lambda x: x['day'])[0]
+
+    if target_post:
+        day_num = target_post["day"]
+        print(f"🎯 Target Found: Day {day_num} ({target_post.get('hook', '')[:20]}...)")
+        
+        image_path = f"images/day_{day_num}.png"
+        if not os.path.exists(image_path):
+            print(f"⚠️ Image missing: {image_path}. Skip.")
             return
 
-    run_day(day_num, image_path, test_mode=test_mode)
-    
-    # 발행 성공 시 (테스트 모드가 아닐 때) published 처리
-    if not test_mode:
-        for p in data:
-            if p["day"] == day_num:
-                p["published"] = True
-        with open(DATA_FILE, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-        print(f"✅ Day {day_num} 발행 완료 및 데이터 업데이트.")
+        full_caption = f"{target_post['caption']}\n\n{target_post['hashtags']}"
+        
+        if test_mode:
+            print(f"[TEST] Would publish Day {day_num}")
+            return
+
+        public_url = get_public_url(image_path)
+        if not public_url: return
+        
+        res = publish_to_insta(public_url, full_caption)
+        print(f"Result: {res}")
+        
+        if res and not str(res).startswith("Error"):
+            posts_ref.child(str(day_num)).update({"published": True})
+            print(f"✅ RTDB Updated: Day {day_num} PUBLISHED.")
+    else:
+        print("✅ Nothing to publish today.")
 
 if __name__ == "__main__":
     is_test = "--test" in sys.argv
-    is_auto = "--auto" in sys.argv
-    
-    if is_auto:
-        run_auto(test_mode=is_test)
-    elif len(sys.argv) < 2:
-        print("사용법: ")
-        print("  수동: python insta_autopilot.py <day_number> [image_path] [--test]")
-        print("  자동: python insta_autopilot.py --auto [--test]")
-    else:
-        try:
-            day = int(sys.argv[1])
-            img = sys.argv[2] if len(sys.argv) > 2 and sys.argv[2] != "--test" else None
-            run_day(day, img, test_mode=is_test)
-        except ValueError:
-            print("에러: 올바른 day_number를 입력하거나 --auto 옵션을 사용하세요.")
+    run_auto(test_mode=is_test)

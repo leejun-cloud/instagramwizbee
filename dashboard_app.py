@@ -1,8 +1,9 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 import json
 import os
+import subprocess
 from pydantic import BaseModel
 
 app = FastAPI(title="Wizbee Dashboard API")
@@ -76,6 +77,23 @@ async def delete_post(day: int):
 @app.get("/api/settings")
 async def get_settings():
     return load_settings()
+
+@app.post("/api/batch")
+async def trigger_batch(background_tasks: BackgroundTasks):
+    from batch_generator import generate_batch
+    background_tasks.add_task(generate_batch, 30)
+    return {"message": "Batch Generation Started (30 days)"}
+
+@app.post("/api/sync")
+async def trigger_sync():
+    try:
+        # Run Git commands to push to cloud
+        subprocess.run(["git", "add", "book_data.json", "images/"], check=True)
+        subprocess.run(["git", "commit", "-m", "chore: sync monthly batch to cloud [skip ci]"], check=True)
+        subprocess.run(["git", "push"], check=True)
+        return {"message": "Sync to Cloud Successful!"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/settings")
 async def update_settings(settings: AutoModeSettings):
