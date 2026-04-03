@@ -138,6 +138,23 @@ def run_auto(test_mode=False):
     else:
         print("✅ Nothing to publish today.")
 
+def seed_to_fb():
+    posts_ref = init_fb()
+    print("🚀 Seeding local book_data.json to Firebase RTDB...")
+    try:
+        with open('book_data.json', 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        # RTDB uses key-value pairs (dict)
+        data_dict = {str(post['day']): post for post in data}
+        posts_ref.update(data_dict)
+        print(f"✨ Successfully synced {len(data)} posts to Firebase!")
+    except Exception as e:
+        print(f"❌ Seed failed: {e}")
+
 if __name__ == "__main__":
-    is_test = "--test" in sys.argv
-    run_auto(test_mode=is_test)
+    if "--seed" in sys.argv:
+        seed_to_fb()
+    else:
+        is_test = "--test" in sys.argv
+        run_auto(test_mode=is_test)
