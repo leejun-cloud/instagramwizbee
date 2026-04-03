@@ -1,12 +1,15 @@
 #!/bin/bash
-cd "$(dirname "$0")"
 
-# 가상환경 활성화
-source .venv/bin/activate
+echo "🚀 Wizbee Dashboard를 준비 중입니다..."
 
-# 백그라운드 워커 (자동 발행 모니터링 로직 - 예시)
-# python auto_worker.py &
+# 의존성 확인 및 설치
+if ! python3 -c "import fastapi, uvicorn" &> /dev/null; then
+    echo "📦 필수 패키지(FastAPI, Uvicorn)가 없습니다. 설치를 시작합니다..."
+    python3 -m pip install fastapi uvicorn pydantic
+fi
 
-echo "🚀 Wizbee Dashboard 켜는 중..."
-echo "👉 브라우저에서 접속하세요: http://localhost:8000"
-uvicorn dashboard_app:app --host 0.0.0.0 --port 8000 --reload
+echo "🌐 대시보드 서버를 시작합니다: http://127.0.0.1:8000"
+echo "💡 브라우저에서 위 주소를 입력해 접속하세요."
+
+# 서버 실행
+python3 -m uvicorn dashboard_app:app --host 127.0.0.1 --port 8000 --reload
