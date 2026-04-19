@@ -1,8 +1,13 @@
 rules_version = '2';
+
+// Wizbee does not actively use Firestore — the app runs on Realtime Database.
+// Keeping Firestore locked down to prevent drive-by writes. If a future feature
+// adopts Firestore, open specific collections with auth-gated + validated rules
+// rather than a blanket allow.
 service cloud.firestore {
   match /databases/{database}/documents {
     match /{document=**} {
-      allow read, write: if true; // ⚠️ Temporarily open for easy setup
+      allow read, write: if false;
     }
   }
 }

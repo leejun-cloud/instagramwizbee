@@ -1,1 +1,22 @@
-{ "rules": { ".read": true, ".write": true } }
+{
+  "rules": {
+    ".read": true,
+    ".write": "auth != null",
+    "posts": {
+      "$day": {
+        ".validate": "newData.hasChildren(['day'])",
+        "day": { ".validate": "newData.isNumber()" },
+        "caption": { ".validate": "newData.isString() && newData.val().length < 3000" },
+        "hook": { ".validate": "newData.isString() && newData.val().length < 500" },
+        "hashtags": { ".validate": "newData.isString() && newData.val().length < 1000" },
+        "approved": { ".validate": "newData.isBoolean()" },
+        "published": { ".validate": "newData.isBoolean()" },
+        "scheduled_date": { ".validate": "newData.isString() || !newData.exists()" },
+        "scheduled_time": { ".validate": "newData.isString() || !newData.exists()" },
+        "type": { ".validate": "newData.isString()" },
+        "image_prompt": { ".validate": "newData.isString() || !newData.exists()" },
+        "$other": { ".validate": true }
+      }
+    }
+  }
+}

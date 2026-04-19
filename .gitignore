@@ -21,3 +21,12 @@ _agents/
 # OS
 .DS_Store
 Thumbs.db
+
+# Firebase Web config with real API key (user-local, never committed)
+firebase-config.js
+
+# One-time setup script (local only, not part of repo history)
+LAPTOP_COMMIT_PUSH.sh
+
+# Nested repository (content-pipeline plugin, managed separately)
+content-pipeline/

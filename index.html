@@ -63,22 +63,18 @@
         </div>
     </div>
 
-    <!-- Firebase SDK (Modular v11) - Switching to Realtime Database -->
+    <!-- Firebase SDK (Modular v11) - Realtime Database + Anonymous Auth -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
         import { getDatabase, ref, onValue, set, update, get, child } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
-        
-        const firebaseConfig = {
-            projectId: "insta-wizbee-cloud-2026",
-            appId: "1:564409947109:web:ad7c605c3c7d4b29ee950c",
-            databaseURL: "https://insta-wizbee-cloud-2026-default-rtdb.firebaseio.com",
-            storageBucket: "insta-wizbee-cloud-2026.firebasestorage.app",
-            apiKey: "REDACTED_FIREBASE_WEB_KEY",
-            authDomain: "insta-wizbee-cloud-2026.firebaseapp.com"
-        };
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+        // firebase-config.js is gitignored. Copy firebase-config.example.js to firebase-config.js
+        // and fill in your Firebase Web API key. The file is not committed to the repository.
+        import { firebaseConfig } from "./firebase-config.js";
 
         const app = initializeApp(firebaseConfig);
         const rtdb = getDatabase(app);
+        const auth = getAuth(app);
 
         // Make functions globally available
         window.rtdb = rtdb;
@@ -88,6 +84,23 @@
         window.dbUpdate = update;
         window.dbGet = get;
         window.dbChild = child;
+        window.authReady = false;
+
+        // Sign in anonymously so the dashboard can write under `auth != null` rules.
+        // Requires: Firebase Console → Authentication → Sign-in method → Anonymous: Enabled.
+        signInAnonymously(auth).catch((err) => {
+            console.error("Anonymous sign-in failed:", err);
+            alert(
+                "Firebase Anonymous Auth failed. Please enable it in the Firebase Console
+" +
+                "(Authentication → Sign-in method → Anonymous). Reads will still work; writes will be blocked."
+            );
+        });
+
+        onAuthStateChanged(auth, (user) => {
+            window.authReady = !!user;
+            if (user) console.log("🔐 Firebase auth ready (uid: " + user.uid.slice(0, 6) + "…)");
+        });
 
         console.log("Firebase RTDB Initialized.");
     </script>

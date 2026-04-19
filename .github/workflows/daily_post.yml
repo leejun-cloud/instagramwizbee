@@ -2,10 +2,11 @@ name: Daily Instagram Post
 
 on:
   schedule:
-    # 매일 오후 11시 (UTC) -> 한국 시간(KST) 다음날 오전 8시
+    # 매일 한 번만 실행: 한국 시간(KST) 오전 8시 = UTC 23:00
+    # ⚠️ 이전에 있던 '30 1 * * *' (KST 10:30) 임시 크론은 일일 2회 발행을 유발해
+    # 삭제했습니다. 재도입하려면 중복 방지용 멱등성 검사 (published=true 체크)를
+    # insta_autopilot.py 에 먼저 확실히 해 두세요.
     - cron: '0 23 * * *'
-    # [임시] 오늘 오전 10시 30분 (KST) = 오전 1:30 (UTC)
-    - cron: '30 1 * * *'
   workflow_dispatch: # 수동으로 즉시 실행 가능하게 설정
 
 jobs:
@@ -37,4 +38,5 @@ jobs:
         INSTA_ACCESS_TOKEN: ${{ secrets.INSTA_ACCESS_TOKEN }}
         FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         PYTHONIOENCODING: utf-8
+        TZ: Asia/Seoul
       run: python insta_autopilot.py
