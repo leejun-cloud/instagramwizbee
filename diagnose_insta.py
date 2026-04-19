@@ -1,8 +1,20 @@
-import requests
+import os
 import json
+import requests
+from dotenv import load_dotenv
 
-ACCESS_TOKEN = "REDACTED_INSTA_TOKEN"
-ACCOUNT_ID = "17841427998042847"
+load_dotenv()
+
+# Credentials MUST come from env vars (.env locally, GitHub Secrets in CI).
+# Never hardcode Instagram tokens — they grant full posting access.
+ACCESS_TOKEN = os.getenv("INSTA_ACCESS_TOKEN")
+ACCOUNT_ID = os.getenv("INSTA_ACCOUNT_ID")
+
+if not ACCESS_TOKEN or not ACCOUNT_ID:
+    raise RuntimeError(
+        "Missing INSTA_ACCESS_TOKEN or INSTA_ACCOUNT_ID. "
+        "Set them in .env (local) or as GitHub Secrets (CI)."
+    )
 
 def check_media():
     url = f"https://graph.instagram.com/v23.0/{ACCOUNT_ID}/media"

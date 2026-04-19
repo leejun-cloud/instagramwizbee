@@ -76,8 +76,9 @@ function renderPosts() {
                 <span class="scheduled-date">${post.scheduled_date || 'No Date'}</span>
             </div>
             <div class="card-image-preview">
-                <img src="/images/day_${post.day}.png" 
-                     onerror="this.src='/images/test_image.png'" 
+                <img src="/images/day_${post.day}.jpg"
+                     data-day="${post.day}"
+                     onerror="window.handleImgFallback(this)"
                      class="single-thumb">
             </div>
             <div class="card-body">
@@ -95,6 +96,22 @@ function renderPosts() {
         postGrid.appendChild(card);
     });
 }
+
+// Image fallback chain: day_N.jpg → day_N.png → test_image.png.
+// Uses a data-step attribute so a single onerror handler never loops.
+window.handleImgFallback = function(img) {
+    const step = img.dataset.step || "0";
+    const day = img.dataset.day;
+    if (step === "0") {
+        img.dataset.step = "1";
+        img.src = `/images/day_${day}.png`;
+    } else if (step === "1") {
+        img.dataset.step = "2";
+        img.src = "/images/test_image.png";
+    } else {
+        img.onerror = null; // give up, avoid infinite loop
+    }
+};
 
 // Actions
 window.toggleApproval = async function(day) {

@@ -1,11 +1,20 @@
-import requests
-import time
 import os
+import time
+import requests
+from dotenv import load_dotenv
 
-# Configuration (from insta_autopilot.py)
-ACCOUNT_ID = "17841427998042847"
-ACCESS_TOKEN = "REDACTED_INSTA_TOKEN"
+load_dotenv()
+
+# Credentials from env vars only — never hardcode.
+ACCOUNT_ID = os.getenv("INSTA_ACCOUNT_ID")
+ACCESS_TOKEN = os.getenv("INSTA_ACCESS_TOKEN")
 VERSION = "v23.0"
+
+if not ACCESS_TOKEN or not ACCOUNT_ID:
+    raise RuntimeError(
+        "Missing INSTA_ACCESS_TOKEN or INSTA_ACCOUNT_ID. "
+        "Set them in .env (local) or as GitHub Secrets (CI)."
+    )
 
 def get_public_url(file_path):
     """Hosts local file to a public URL using Catbox."""

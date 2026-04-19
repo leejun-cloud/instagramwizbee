@@ -35,12 +35,20 @@ def send_to_slack(posts):
     else:
         message = "📢 *[위즈비] 이번 주 인스타그램 업로드 예정 리스트 (승인 대기)*\n\n"
         for post in posts:
-            message += f"*Day {post['day']}: {post['book_title']}*\n"
-            message += f"> *Hook:* {post['hook']}\n"
-            message += f"> *Time:* {post['scheduled_time']}\n"
-            message += f"> *Prompt:* `{post['image_prompt']}`\n\n"
-        
-        message += "\n압승인하시려면 `book_data.json`에서 해당 Day의 `approved`를 `true`로 변경해주세요."
+            # 필드는 모두 optional — 오래된 데이터에 image_prompt/scheduled_time 없음.
+            # .get() 으로 KeyError 방지, 없으면 안전한 기본값 표시.
+            day = post.get("day", "?")
+            title = post.get("book_title", "(제목 없음)")
+            hook = post.get("hook", "(hook 없음)")
+            when = post.get("scheduled_date") or post.get("scheduled_time") or "미정"
+            prompt = post.get("image_prompt") or post.get("excerpt") or "(프롬프트 없음)"
+
+            message += f"*Day {day}: {title}*\n"
+            message += f"> *Hook:* {hook}\n"
+            message += f"> *When:* {when}\n"
+            message += f"> *Prompt:* `{prompt}`\n\n"
+
+        message += "\n승인하시려면 `book_data.json`에서 해당 Day의 `approved`를 `true`로 변경해주세요."
 
     payload = {"text": message}
     try:

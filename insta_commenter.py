@@ -6,10 +6,16 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Configuration (Existing credentials)
-ACCOUNT_ID = os.getenv("INSTA_ACCOUNT_ID", "17841427998042847")
-ACCESS_TOKEN = os.getenv("INSTA_ACCESS_TOKEN", "REDACTED_INSTA_TOKEN")
+# Credentials from env vars only — never hardcode.
+ACCOUNT_ID = os.getenv("INSTA_ACCOUNT_ID")
+ACCESS_TOKEN = os.getenv("INSTA_ACCESS_TOKEN")
 VERSION = "v23.0"
+
+if not ACCESS_TOKEN or not ACCOUNT_ID:
+    raise RuntimeError(
+        "Missing INSTA_ACCESS_TOKEN or INSTA_ACCOUNT_ID. "
+        "Set them in .env (local) or as GitHub Secrets (CI)."
+    )
 
 class InstaCommenter:
     def __init__(self):
